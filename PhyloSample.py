@@ -35,6 +35,7 @@ header = f[0]
 ta = [taxon for taxon in header.split()]
 ta.remove('Taxon:')
 
+
 def getDataStructures():
 	"""Obtains the necessary data structures for use in this program:
 	1) TA = dictionary of taxonomic ranks containing taxonomic dictionaries of 
