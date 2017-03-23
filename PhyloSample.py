@@ -6,9 +6,6 @@ from random import *
 import argparse
 from collections import defaultdict
 
-#popfile = sys.argv[1];      
-#outfile= sys.argv[2];      
-
 parser = argparse.ArgumentParser(prog="PhyloSample", prefix_chars='-+',
 	description='choose mode of sampling', )
 	
@@ -35,11 +32,17 @@ f = popfile.readlines()
 header = f[0]
 
 # ta is list of taxon levels for which we have information
-
 ta = [taxon for taxon in header.split()]
 ta.remove('Taxon:')
 
 def getDataStructures():
+	"""Obtains the necessary data structures for use in this program:
+	1) TA = dictionary of taxonomic ranks containing taxonomic dictionaries of 
+		taxon found at that level (key) with lists of next lower rank taxon
+	2) species = similar to TA, but with lists of species for each taxon group
+	3) master = dictionary of all species with dictionaries of taxonomic ranks
+	4) changes = dictionary of changes made in the program
+	"""
 	# TA is dictionary of taxon levels composed of dictionaries of taxon groups at that level with 
 	# sub-taxon falling under each taxon group
 	TA = {taxon: defaultdict(list) for taxon in ta[:-1]}
@@ -73,6 +76,11 @@ def getDataStructures():
 	return TA, species, master, changes
 
 def MergeTaxa(simPop, ch, t, k=2):
+	"""merges two randomly selected taxon at rank t, makes necessary changes
+	to master dictionary, and outputs dictionary of changes made plus list
+	of species to be output to simulated dataset. All species found within
+	the two taxon will be the contained within the new taxon
+	"""
 	while True:
 		if len(TA[t]) < k: 
 			#if there are less than k number of taxon at a particular level, merge is not possible
@@ -104,6 +112,11 @@ def MergeTaxa(simPop, ch, t, k=2):
 	return simPop, ch, message
 
 def SplitTaxa(simPop, ch,t):
+	"""splits one randomly selected taxon at rank into two new taxon, makes
+	necessary changes to master dictionary, and outputs dictionary of changes 
+	made plus list of populations to be output to simulated dataset. all species
+	from original species will now be divided into two new species
+	"""
 	while True:
 		if len(TA[t].keys()) == 0:
 			message = "there are no original taxon left at that level to split"
@@ -148,6 +161,12 @@ def SplitTaxa(simPop, ch,t):
 	return simPop, ch,message
 
 def MoveTaxa(simPop, ch, t):
+	"""moves one randomly selected taxon at rank t+1 from a randomly selected
+	taxon at rank t into another randomly selected taxon at rank t, makes 
+	necessary changes to master dictionary, and outputs dictionary of changes 
+	made plus list of populations to be output to simulated dataset. all species
+	from the subtaxon at rank t+1 will be moved form taxon 1 to taxon 2
+	"""
 	#if ta.index(t) == 0: print ("cannot move taxa within uppermost level")
 	#this function moves a subtaxon group within upper taxon level
 	while True:
@@ -182,6 +201,9 @@ def MoveTaxa(simPop, ch, t):
 	return simPop,ch, message
 
 def taxonSimulation(changes):
+	"""controls simulation. prompts user to taxon change to perform, taxon tank.
+	and number of repetitions. Continues until user chooses to end simulations.
+	"""
 	t = "".join([str(ta.index(t)) + " for " + t + " " for t in ta[0:len(ta) -1]])
 	simPop=[]
 	while True:
@@ -218,6 +240,8 @@ def taxonSimulation(changes):
 	return simPop,changes
 
 def printChanges(master, simPop, changes, out, dir='.'):
+	"""prints out dataset with simulated species data and file of changes.
+	"""
 	out = dir + '/' + out.split(".")[0]
 	o = open(out + '.sim','w')
 	
@@ -248,7 +272,10 @@ def printChanges(master, simPop, changes, out, dir='.'):
 	o.close()
 	
 if mode == 'i':
-	doctext = """PhyloSample will ask a number of prompts, beginning with the function you wish to use---merge, \
+	"""if mode is interactive, that is user will be asked for changes to 
+	be performed
+	"""
+	doctext = "PhyloSample will ask a number of prompts, beginning with the function you wish to use---merge, \
 	split, or move, followed by the taxon level to be manipulted. Choices of taxon for manipulation include all \
 	the species level. When you choose to merge or split taxon, taxon at the level chosen will be changed; however \
 	if you choose to move a taxon it is actually a taxon at the taxon level below the chosen one that will be moved. \
@@ -256,8 +283,7 @@ if mode == 'i':
 	species to be moved from one taxon to another. Finally, you will be asked to choose number of reps to be \
 	performed. Following simulations, you will be asked whether you want to continue with simulations. Choosing \
 	'yes' allows you to choose other functions to be performed and taxon levels to be maniuplated. Choosing 'no' \
-	outputs new simulated file along with a file of changes performed.
-	"""
+	outputs new simulated file along with a file of changes performed."
 
 	print (doctext)
 	TA, species, master, changes = getDataStructures()
@@ -267,7 +293,10 @@ if mode == 'i':
 	printChanges(master, simulatedPopulation, changes, outfile)
 
 if mode == 'a':
-	
+	"""if mode is automated. Used to perform more than one simulation at once.
+	limitation is that you can only perform at one taxon rank for each 
+	simulation.
+	"""
 	fdir = '%sSimulations' % outfile.split()[0]
 	#fc = '%sMasterChanges' % outfile
 	try:
@@ -296,6 +325,4 @@ if mode == 'a':
 		out= '{0:s}-{1:d}'.format(outfile,n+1)
 
 		printChanges(master, simPop, changes, out, dir=fdir)
-
-
 
