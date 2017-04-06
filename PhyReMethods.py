@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 """
-CODENAME:	  PhyReMethods
-DESCRIPTION: Methods as required by other PhyRe scripts
+CODENAME:	  PhyRe
+DESCRIPTION:  
 
-Copyright (c) 2010-2017 Ronald R. Ferrucci, Federico Plazzi, and Marco Passamonti.
+Copyright (c) 2010-2017 Ronald R. Ferrucci, Federico Plazzi, and Marco Passamonti..
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
@@ -271,8 +271,14 @@ for VarTD\n""")
 	up =[]; lo=[]; means=[]
 
 	dims = [d for d in range(d1, d2+1)]
-
+	
+	l = '{0:10s} {1:s}  {2:s}  {3:s}  {4:s}  {5:s}  {6:s}  {7:s}  {8:s}' \
+	 .format("dimension", "AvTD05%", "AvTDmean","AvTD95%", "AvTDup", "VarTDlow",
+	"VarTD05%", "VarTDmean", "VarTD95%\n")
+	o.write(l)
+	
 	for d in range(d1, d2 + 1):	
+		print(d)
 		AvTDci = []; VarTDci = []
 		for j in range(p):
 			rsamp = random.sample(pop,d)
@@ -284,12 +290,9 @@ for VarTD\n""")
 
 		AvTD = AvTDci[int(.05 * p)], sum(AvTDci)/p, AvTDci[int(.95 * p)], max(AvTDci)
 		VarTD = min(VarTDci), VarTDci[int(.05 * p)],sum(VarTDci)/p,VarTDci[int(.95 * p)] 
+	
 		
-		l = '{0:10s} {1:s}  {2:s}  {3:s}  {4:s}  {5:s}  {6:s}  {7:s}  {8:s}' \
-		 .format("dimension", "AvTD05%", "AvTDmean","AvTD95%", "AvTDup", 
-		"VarTDlow","VarTD05%", "VarTDmean", "VarTD95%")
-		o.write(l)
-		l = '{0:<10d} {1:6.4f}  {2:6.4f}  {3:6.4f}  {4:6.4f} {5:6.4f} {6:6.4f} {7:6.4f} {8:6.4f}' \
+		l = '{0:<10d} {1:6.4f}  {2:6.4f}  {3:6.4f}  {4:6.4f} {5:6.4f} {6:6.4f} {7:6.4f} {8:6.4f}\n' \
 		.format(d, AvTD[0], AvTD[1], AvTD[2], AvTD[3], VarTD[0], VarTD[1], VarTD[2], VarTD[3])
 		#o.write ('%i		 %6.4f	 %6.4f	 %6.4f	 %6.4f	 %6.4f	 %6.4f	 %6.4f	 %6.4f' \
 		o.write(l)
