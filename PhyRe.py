@@ -6,36 +6,33 @@ DESCRIPTION:
 
 Copyright (c) 2010-2017 Ronald R. Ferrucci, Federico Plazzi, and Marco Passamonti..
 
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in 
+the Software without restriction, including without limitation the rights to 
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+of the Software, and to permit persons to whom the Software is furnished to do 
+so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all 
+copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+SOFTWARE.
 
 """
 import argparse
-import sys
+import sys, os, platform
 from PhyReMethods import *
 
 """p = permutations for confidence intervals, d1 and d2 are range for number of 
-species for funnel plot. parameter: m = AvTD, v = VarTD, e = euler, b = AvTD and VarTd. 
-ci = confidence intervals b = batch file. l = user-defined path lengths
-defaults are chosen when option is not indicated:
+species for funnel plot. parameter: m = AvTD, v = VarTD, e = euler, b = AvTD 
+and VarTd. ci = confidence intervals b = batch file. l = user-defined path 
+lengths defaults are chosen when option is not indicated:
 d1, d2 = 30, 70
 permutations = 1000
 confidence intervals = yes
@@ -50,8 +47,7 @@ def main():
 	"""
 	parser = argparse.ArgumentParser(prog="PhyRe", prefix_chars='-+')
 
-	parser.add_argument('samplefile', type=argparse.FileType('r', encoding="ISO-8859-1"),
-		default=sys.stdin)
+	parser.add_argument('samplefile')
 	parser.add_argument('popfile', type=argparse.FileType('r', encoding="ISO-8859-1"),
 		default=sys.stdin)
 
@@ -73,21 +69,24 @@ def main():
 	args = parser.parse_args()
 	return args
 	
+
 if __name__ == "__main__":
 	args = main()
-	sample, population, taxon = getDataStructures(args)
+	population, taxon = getPopulationData(args)
 	coef, pathLengths, taxonpopN = PathLength(args, population, taxon)
+	
+	popStats = {}
+	popStats['taxon'] = taxon
+	popStats['taxonPopN'] = taxonpopN
+	popStats['pathlengths'] = pathLengths
+
+	sample = getSamples(args, population)
 	atd,taxonN, Taxon = ATDmean(sample, population, taxon, coef)
 	vtd = ATDvariance(taxonN,sample,atd, taxon, coef)
 	Eresults = euler(sample,atd, taxonN, taxon, Taxon, coef)
 
 	f = args.samplefile.name
-	
-	results = {}; popStats = {}
-	popStats['taxon'] = taxon
-	popStats['taxonPopN'] = taxonpopN
-	popStats['pathlengths'] = pathLengths
-	
+	results = {}; 
 	results[f] = {}
 	results[f]['atd'] = atd
 	results[f]['vtd'] = vtd
