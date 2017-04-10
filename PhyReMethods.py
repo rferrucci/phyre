@@ -34,55 +34,49 @@ import argparse
 from re import *
 import random
 
-def getDataStructures(args):
-	""" returns list of samples, master list from the population at large, and list of taxon included"""
-	popfile=args.popfile; samplefile=args.samplefile
-
+def getSamples(args, population): 
+	samplefile=args.samplefile
 	#if batch processing, take a list of files
-	if args.b == 'y': 
-		Files = []
-		for i in open(samplefile):	
-				j = i.strip()
-				Files.append(j)
-	f = popfile.readlines()
-	
-	header = f[0] #get header information
-	
-	sample = [s.split()[0] for s in samplefile.readlines()]
-	sample = set(sample)
-
-	f = [f[i].split() for i in range(1, len(f)) if f[i].split() != []]
-
-	# taxon is list of taxon levels for which we have information
-	taxon = [header.split()[i] for i in range(len(header.split()))[1:]]
-	population = getPopulationData(args, f, taxon)
 	species = population.keys()
+
+	sample = [s.split()[0] for s in open(samplefile, 'r', encoding="ISO-8859-1").readlines()]
+	sample = set(sample)
 	
 	# test whether species are found in master list, if not program outputs missing species then dies
 	try:
 		missing = [s for s in sample if s not in species]
-		if len(missing) != 0: raise Exception(', '.join(missing) + " not in master list " + popfile.name)
+		if len(missing) != 0: raise Exception(', '.join(missing) + " not in master list " + args.popfile.name)
 	except Exception as e:
 		print(e)
 		quit()
-	else: return sample, population, taxon
+	else: return sample
 
-def getPopulationData(args, f, taxon):
+def getPopulationData(args):
 	""" get full taxonomic data from dataset """
-	population = {f[i][0]: {} for i in range(len(f))}
+	popfile=args.popfile; 
+	f = popfile.readlines()
+	header = f[0] #get header information
+	
+	# taxon is list of taxon levels for which we have information
 
+	taxon = [header.split()[i] for i in range(len(header.split()))[1:]]
+	f = [f[i].split() for i in range(1, len(f)) if f[i].split() != []]
+	species = [f[i][0] for i in range(len(f))]
+	population = {s: {} for s in species}
+	
 	for line in f:
-		species = line[0]
+		s = line[0]
 		if args.m == 'y':
 			mtax = ''
-			population[species][taxon[0]] = line[1]
+			#population[s][taxon[0]] = line[1]
 			for i in range(1, len(taxon)):
-				if x[Index[t]] == '/': population[species][taxon[i]] = population[species][taxon[i-1]]
-				else: population[species][taxon[i]] = line[i+1]
+				if x[Index[t]] == '/': population[s][taxon[i]] = population[species][taxon[i-1]]
+				else: population[s][taxon[i]] = line[i+1]
 
 		else:
-			population[species] = {taxon[i]: line[i+1] for i in range(len(taxon))}
-	return population
+			for i in range(len(taxon)):
+				population[s] = {taxon[i]: line[i+1] for i in range(len(taxon))}
+	return population,taxon
 		
 def StandPathLength(taxon):
 	Ln = 100/2*(len(taxon) - 1)
@@ -138,7 +132,6 @@ def ATDmean(sample, data, taxon, coef):
 		AvTD += (n * coef[t]) 
 		n = taxonN[t]
 
-	#print sample
 	AvTD /= (N * (N - 1))
 	return AvTD,taxonN, Taxon
 
@@ -219,53 +212,53 @@ def euler(sample, atd, TaxonN, taxon, Taxon, coef):
 
 def printResults(args, results, popStats, population, taxon, coef):
 	if args.out is not None and args.out == 'y': args.out.split('.') + '.out'
-	else: outfile = args.samplefile.name.split('.')[0] + '.out'
+	else: outfile = args.samplefile.split('.')[0] + '.out'
 	print("Writing to " + outfile + "\n")
 	o = open(outfile,'w')	
 	o.write("Output from Average Taxonomic Distinctness\n\n")
-	o.write ("Number of taxa and path lengths for each taxonomic level:")
+	o.write ("Number of taxa and path lengths for each taxonomic level:\n")
 
 	for t in popStats['taxon']:
-		l = '%-10s\t%d\t%.4f' %(t,popStats['taxonPopN'][t],popStats['pathlengths'][t])
+		l = '%-10s\t%d\t%.4f\n' %(t,popStats['taxonPopN'][t],popStats['pathlengths'][t])
 		o.write (l)
 	
 	o.write ("\n")
 	for f in results:
-		print ("---------------------------------------------------")
-		print ("Results for sample: ", f,'\n')
-		print ("Dimension for this sample is", results[f]['n'], '\n\n')
-		print ("Number of taxa and pairwise comparisons	at each taxon level:")
+		o.write ("---------------------------------------------------\n")
+		o.write ("Results for sample: {0:s}\n".format(f))
+		o.write ("Dimension for this sample is {0:d}\n\n".format(results[f]['n']))
+		o.write ("Number of taxa and pairwise comparisons at each taxon level:\n")
 			
 		n = 0
 		for t in popStats['taxon']:
 			N = results[f]['N'][t] - n
-			print('{0:20s}\t{1:d}\t{2:d}'.format(t,results[f]['TaxonN'][t],N))
+			o.write('\t{0:20s}\t{1:d}\t{2:d}\n'.format(t,results[f]['TaxonN'][t],N))
 			
-		print ("\nNumber of pairwise comparisons is for pairs that differ \
+		o.write ("\nNumber of pairwise comparisons is for pairs that differ \
 at each level excluding comparisons that differ at upper levels")
-		print ("\n")
+		o.write ("\n")
 		  
-		print ("Average taxonomic distinctness	    = %.4f" % results[f]['atd'])
-		print ("Variation in taxonomic distinctness = %.4f" % results[f]['vtd'])
-		print ("Minimum taxonomic distinctness	    = %.4f" % results[f]['euler']['TDmin'])
-		print ("Maximum taxonomic distinctness	    = %.4f" % results[f]['euler']['TDmax'])
-		print ("von Euler's index of imbalance	    = %.4f" % results[f]['euler']['EI'])
-		print ('\n')
+		o.write ("\tAverage taxonomic distinctness	    = %.4f\n" % results[f]['atd'])
+		o.write ("\tVariation in taxonomic distinctness = %.4f\n" % results[f]['vtd'])
+		o.write ("\tMinimum taxonomic distinctness	    = %.4f\n" % results[f]['euler']['TDmin'])
+		o.write ("\tMaximum taxonomic distinctness	    = %.4f\n" % results[f]['euler']['TDmax'])
+		o.write ("\tvon Euler's index of imbalance	    = %.4f\n" % results[f]['euler']['EI'])
+		o.write ('\n')
 
 	o.close()
 	if args.ci == 'y':
-		ConfienceIntervals(args, outfile, population, taxon, coef)
+		ConfidenceIntervals(args, outfile, population, taxon, coef)
 		
-def ConfienceIntervals(args, outfile, population, taxon, coef):		
+def ConfidenceIntervals(args, outfile, population, taxon, coef):		
 	output = outfile.split('_')[0] + '_funnel.out'
 	p = args.p; d1 = args.d1; d2 = args.d2
 	o = open(output,'w')
 
-	print ("""Confidence limits for average taxonomic distinctness and variation \
+	o.write ("""Confidence limits for average taxonomic distinctness and variation \
 in taxonomic distinctness limits are lower 95% limit for AvTD and upper 95% limit \
 for VarTD\n""")
 
-	print ("Number of permutations for confidence limits =", p, '\n')
+	o.write ("Number of permutations for confidence limits =", p, '\n')
 
 	pop = list(population.keys())
 	up =[]; lo=[]; means=[]
