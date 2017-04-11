@@ -62,16 +62,16 @@ def getPopulationData(args):
 	taxon = [header.split()[i] for i in range(len(header.split()))[1:]]
 	f = [f[i].split() for i in range(1, len(f)) if f[i].split() != []]
 	species = [f[i][0] for i in range(len(f))]
-	population = {s: {} for s in species}
-	
+	population = {s: {t: "" for t in taxon} for s in species}
 	for line in f:
 		s = line[0]
 		if args.m == 'y':
 			mtax = ''
 			#population[s][taxon[0]] = line[1]
-			for i in range(1, len(taxon)):
-				if x[Index[t]] == '/': population[s][taxon[i]] = population[species][taxon[i-1]]
-				else: population[s][taxon[i]] = line[i+1]
+			for i in range(len(taxon)):
+				if line[i+1] == '/': 
+					population[s] = {taxon[i]: population[s][taxon[i-1]]}
+				else: population[s] = {taxon[i]: line[i+1] for i in range(len(taxon))}
 
 		else:
 			for i in range(len(taxon)):
@@ -89,16 +89,16 @@ def PathLength(args, population, taxon):
 	
 	Taxon = {t: {} for t in taxon}
 	sample = population.keys()
+
 	for t in taxon:
-		# at each taxon level, making list of taxon present
-		Taxon[t] = [population[i][t] for i in sample if population[i][t] != '/']
-		
+		# at each taxon level, making list of taxon present	
+		Taxon[t] = [population[i][t] for i in sample if population[i][t] != '/']	
+
 	#count of taxon present at each level, add one for upper level
 	n = [len(set([i for i in Taxon[t]])) for t in taxon]
-	n.insert(0,1.0)
-
+	n.insert(0,1)
 	raw = [1 - n[i]/n[i + 1] for i in range(len(n)-1)]
-
+	print(Taxon['family'])
 	s = sum(raw)
 
 	adjco = [i*100/s for i in raw]
@@ -258,7 +258,7 @@ def ConfidenceIntervals(args, outfile, population, taxon, coef):
 in taxonomic distinctness limits are lower 95% limit for AvTD and upper 95% limit \
 for VarTD\n""")
 
-	o.write ("Number of permutations for confidence limits =", p, '\n')
+	o.write ("Number of permutations for confidence limits = {0:d}\n".format(p))
 
 	pop = list(population.keys())
 	up =[]; lo=[]; means=[]
@@ -271,7 +271,7 @@ for VarTD\n""")
 	o.write(l)
 	
 	for d in range(d1, d2 + 1):	
-		print(d)
+
 		AvTDci = []; VarTDci = []
 		for j in range(p):
 			rsamp = random.sample(pop,d)
