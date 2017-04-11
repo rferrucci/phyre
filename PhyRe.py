@@ -51,8 +51,8 @@ def main():
 	parser.add_argument('popfile', type=argparse.FileType('r', encoding="ISO-8859-1"),
 		default=sys.stdin)
 
-	parser.add_argument("-d1", "--dimenesion1", dest="d1", nargs="?", default=30, type=int)
-	parser.add_argument("-d2", "--dimenesion2", dest="d2", nargs="?", default=70, type=int)
+	parser.add_argument("d1", type=int)
+	parser.add_argument("d2", type=int)
 
 	###-----------------options-------------------------###
 
@@ -69,30 +69,42 @@ def main():
 	args = parser.parse_args()
 	return args
 	
-
 if __name__ == "__main__":
 	args = main()
 	population, taxon = getPopulationData(args)
 	coef, pathLengths, taxonpopN = PathLength(args, population, taxon)
-	
+
 	popStats = {}
 	popStats['taxon'] = taxon
 	popStats['taxonPopN'] = taxonpopN
 	popStats['pathlengths'] = pathLengths
 
-	sample = getSamples(args, population)
-	atd,taxonN, Taxon = ATDmean(sample, population, taxon, coef)
-	vtd = ATDvariance(taxonN,sample,atd, taxon, coef)
-	Eresults = euler(sample,atd, taxonN, taxon, Taxon, coef)
+	if args.b == 'n':
+		files=[args.samplefile]
+	else:
+		files = [i for i in os.listdir(args.samplefile)]
+		directory = args.samplefile
+	results = {f: {} for f in files}; 
 
-	f = args.samplefile.name
-	results = {}; 
-	results[f] = {}
-	results[f]['atd'] = atd
-	results[f]['vtd'] = vtd
-	results[f]['euler'] = Eresults
-	results[f]['N'] = taxonN
-	results[f]['n'] = len(sample)
-	results[f]['TaxonN'] = {t: len(Taxon[t]) for t in taxon}
-	printResults(args, results, popStats, population, taxon, coef)
-	#o.write ("---------------------------------------------------")
+	for f in files:
+		if len(files) == 1:
+			args.samplefile = f
+		else:
+			if platform.system() == 'Windows':
+				args.samplefile = directory + '\\' + f
+			else:
+				args.samplefile = directory + '/' + f
+				
+		sample = getSamples(args, population)
+		atd,taxonN, Taxon = ATDmean(sample, population, taxon, coef)
+		vtd = ATDvariance(taxonN,sample,atd, taxon, coef)
+		Eresults = euler(sample,atd, taxonN, taxon, Taxon, coef)
+
+		results[f]['atd'] = atd
+		results[f]['vtd'] = vtd
+		results[f]['euler'] = Eresults
+		results[f]['N'] = taxonN
+		results[f]['n'] = len(sample)
+		results[f]['TaxonN'] = {t: len(Taxon[t]) for t in taxon}
+
+	printResults(args, results, popStats, population, taxon, coef)	
