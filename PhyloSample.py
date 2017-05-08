@@ -6,34 +6,26 @@ from random import *
 import argparse
 from collections import defaultdict
 
-parser = argparse.ArgumentParser(prog="PhyloSample", prefix_chars='-+',
-	description='choose mode of sampling', )
+def main():
+	parser = argparse.ArgumentParser(prog="PhyloSample", prefix_chars='-+',
+		description='choose mode of sampling', )
 	
-parser.add_argument('popfile', type=argparse.FileType('r'),
-	default=sys.stdin)
-parser.add_argument('outfile')
+	parser.add_argument('popfile', type=argparse.FileType('r'),
+		default=sys.stdin)
+	parser.add_argument('outfile')
 	
-parser.add_argument("-m", "--mode", dest="mode")
+	parser.add_argument("-m", "--mode", dest="mode")
 
-###-------these are used if the mode is automated-------###
-parser.add_argument("-n", "--number", dest="number", type=int)	#number of new files
-parser.add_argument("-t", "--taxon", dest="taxon")	#taxon level
-parser.add_argument("-s", "--split", dest="split",type=int)	#split
-parser.add_argument("-e", "--merge", dest="merge",type=int)	#merge
-parser.add_argument("-v", "--move", dest="move", type=int)	#move
+	###-------these are used if the mode is automated-------###
+	parser.add_argument("-n", "--number", dest="number", type=int)	#number of new files
+	parser.add_argument("-t", "--taxon", dest="taxon")	#taxon level
+	parser.add_argument("-s", "--split", dest="split",type=int)	#split
+	parser.add_argument("-e", "--merge", dest="merge",type=int)	#merge
+	parser.add_argument("-v", "--move", dest="move", type=int)	#move
 
-args = parser.parse_args()
+	args = parser.parse_args()
 
-popfile=args.popfile
-outfile=args.outfile
-mode = args.mode
-
-f = popfile.readlines()
-header = f[0]
-
-# ta is list of taxon levels for which we have information
-ta = [taxon for taxon in header.split()]
-ta.remove('Taxon:')
+	return args
 
 def getDataStructures():
 	"""Obtains the necessary data structures for use in this program:
@@ -45,6 +37,11 @@ def getDataStructures():
 	"""
 	# TA is dictionary of taxon levels composed of dictionaries of taxon groups at that level with 
 	# sub-taxon falling under each taxon group
+	# ta is list of taxon levels for which we have information
+	f = popfile.readlines()
+	header = f[0]
+	ta = [taxon for taxon in header.split()]
+	ta.remove('Taxon:')
 	TA = {taxon: defaultdict(list) for taxon in ta[:-1]}
 
 	# species contains dictionary of each taxon level as TA, but with each taxon group showing a list of species
@@ -73,7 +70,7 @@ def getDataStructures():
 	for taxon in TA:
 		TA[taxon] = {t: set(TA[taxon][t]) for t in TA[taxon]}
 
-	return TA, species, master, changes
+	return ta, TA, species, master, changes
 
 def MergeTaxa(simPop, ch, t, k=2):
 	"""merges two randomly selected taxon at rank t, makes necessary changes
@@ -239,13 +236,13 @@ def taxonSimulation(changes):
 			break
 	return simPop,changes
 
-def printChanges(master, simPop, changes, out, dir='.'):
+def printChanges(ta, master, simPop, changes, out, dir='.'):
 	"""prints out dataset with simulated species data and file of changes.
 	"""
 	out = dir + '/' + out.split(".")[0]
 	o = open(out + '.sim','w')
-	
-	o.write("\t".join(header.split()))
+	header = "Taxon:\t{0:s}\n".format('\t'.join(ta))
+	o.write(header)
 
 	for m in simPop:
 		dat = [m]
@@ -270,6 +267,12 @@ def printChanges(master, simPop, changes, out, dir='.'):
 			l = '{0:s}\t{1:s}\t{2:s}\t{3:s}\n'.format(t,taxon,change,desc)
 			o.write(l)
 	o.close()
+
+if __name__ == "__main__":
+	args = main()
+	popfile=args.popfile
+	outfile=args.outfile
+	mode = args.mode
 	
 if mode == 'i':
 	"""if mode is interactive, that is user will be asked for changes to 
@@ -283,14 +286,14 @@ if mode == 'i':
 	species to be moved from one taxon to another. Finally, you will be asked to choose number of reps to be \
 	performed. Following simulations, you will be asked whether you want to continue with simulations. Choosing \
 	'yes' allows you to choose other functions to be performed and taxon levels to be maniuplated. Choosing 'no' \
-	outputs new simulated file along with a file of changes performed."
+	outputs new simulated file along with a file of changes performed.\n"
 
 	print (doctext)
-	TA, species, master, changes = getDataStructures()
+	ta, TA, species, master, changes = getDataStructures()
 	simulatedPopulation, changes = taxonSimulation(changes)
 
 	print ("printing new master list and changes file\n")
-	printChanges(master, simulatedPopulation, changes, outfile)
+	printChanges(ta, master, simulatedPopulation, changes, outfile)
 
 if mode == 'a':
 	"""if mode is automated. Used to perform more than one simulation at once.
@@ -313,7 +316,7 @@ if mode == 'a':
 	Pdict['v'] = args.move
 
 	for n in range(Pdict['n']):
-		TA, species, master, changes = getDataStructures()
+		ta, TA, species, master, changes = getDataStructures()
 		taxon =Pdict['t']
 		simPop=[]
 
@@ -324,5 +327,7 @@ if mode == 'a':
 		outfile = outfile.split('.')[0]
 		out= '{0:s}-{1:d}'.format(outfile,n+1)
 
-		printChanges(master, simPop, changes, out, dir=fdir)
+		printChanges(ta, master, simPop, changes, out, dir=fdir)
+
+
 
