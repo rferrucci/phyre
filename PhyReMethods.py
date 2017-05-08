@@ -91,7 +91,7 @@ def PathLength(args, population, taxon):
 	n = [len(set([i for i in Taxon[t]])) for t in taxon]
 	n.insert(0,1)
 	raw = [1 - n[i]/n[i + 1] for i in range(len(n)-1)]
-
+	s = sum(raw)
 	adjco = [i*100/s for i in raw]
 	coef = {taxon[i]: sum(adjco[i:]) for i in range(len(taxon))}	
 	pathLengths = {taxon[i]: adjco[i] for i in range(len(taxon))}
